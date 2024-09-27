@@ -22,13 +22,13 @@ Ensure you have the following installed:
 
 To install Python and other required dependencies:
 
-```bash
+`bash
 sudo apt update
-sudo apt install python3 python3-pip python3-venv sqlite3 -y```
+sudo apt install python3 python3-pip python3-venv sqlite3 -y`
 
 # 1. Clone the Repository
-```git clone https://github.com/hackletloose/hall-twitch-scouter.git
-cd hall-twitch-scouter```
+`git clone https://github.com/hackletloose/hall-twitch-scouter.git
+cd hall-twitch-scouter`
 
 # 2. Set up the Virtual Environment
 ```python3 -m venv venv
