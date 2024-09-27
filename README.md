@@ -22,30 +22,30 @@ Ensure you have the following installed:
 
 To install Python and other required dependencies:
 
-`bash
+```bash
 sudo apt update
-sudo apt install python3 python3-pip python3-venv sqlite3 -y`
+sudo apt install python3 python3-pip python3-venv sqlite3 -y
 
-# 1. Clone the Repository
-`git clone https://github.com/hackletloose/hall-twitch-scouter.git
-cd hall-twitch-scouter`
+### 1. Clone the Repository
+```git clone https://github.com/hackletloose/hall-twitch-scouter.git
+cd hall-twitch-scouter
 
-# 2. Set up the Virtual Environment
+### 2. Set up the Virtual Environment
 ```python3 -m venv venv
 source venv/bin/activate  # For Linux/MacOS
 # OR
-venv\Scripts\activate  # For Windows```
+venv\Scripts\activate  # For Windows
 
-# 3. Install Dependencies
-```pip install -r requirements.txt```
+### 3. Install Dependencies
+`pip install -r requirements.txt`
 
-# 4. Setup .env
+### 4. Setup .env
 ```# Discord Setup
 DISCORD_TOKEN=your_discord_token
 REPORTS_DISCORD_CHANNEL_ID=your_reports_channel_id
 UNWANTED_DISCORD_CHANNEL_ID=your_unwanted_channel_id
 
-# Twitch Setup
+### Twitch Setup
 TWITCH_CLIENT_ID=your_twitch_client_id
 TWITCH_CLIENT_SECRET=your_twitch_client_secret
 STREAM_GAME_ID=497440  # Game ID for Hell Let Loose
@@ -59,18 +59,18 @@ IRRELEVANT_DAYS=180
 CONSOLE_DAYS=180
 HIDE_HOURS=6
 DELETE_AFTER_ONLINE_TIME=15
-```
-# 5. Setup the Database
+
+### 5. Setup the Database
 The bot uses SQLite to store information about streamers. When the bot starts, it will automatically create a streamers.db database and set up the necessary tables.
 
-# 6. Discord Bot Permissions
+### 6. Discord Bot Permissions
 Ensure your Discord bot has the following permissions:
-Read Messages
+```Read Messages
 Send Messages
 Manage Messages (for deleting outdated messages)
 Use Slash Commands
 Embed Links
 
-# 7. Running the Bot
+### 7. Running the Bot
 To start the bot, simply run:
-```python bot.py```
+`python bot.py`
