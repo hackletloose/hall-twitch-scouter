@@ -30,6 +30,23 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 
 DATABASE_PATH = 'streamers.db'
 
+api_urls = [
+    os.getenv('API_URL_1'),
+    os.getenv('API_URL_2'),
+    os.getenv('API_URL_3'),
+    os.getenv('API_URL_4'),
+    os.getenv('API_URL_5'),
+    os.getenv('API_URL_6'),
+    os.getenv('API_URL_7'),
+    os.getenv('API_URL_8'),
+    os.getenv('API_URL_9'),
+    os.getenv('API_URL_10'),
+    os.getenv('API_URL_11'),
+    os.getenv('API_URL_12')
+]
+
+os.getenv('API_KEY_8')
+
 class MyView(discord.ui.View):
     def __init__(self, streamer_name):
         super().__init__(timeout=None)
@@ -67,6 +84,27 @@ class MyView(discord.ui.View):
         show_later_until = datetime.now() + timedelta(hours=HIDE_HOURS)
         update_show_later(self.streamer_name, show_later_until)
         await interaction.response.send_message(f'{interaction.user.name}**: Streamer **{self.streamer_name}** will not be shown up again for **{HIDE_HOURS} hours**')
+        
+    @discord.ui.button(label='🔍 search', style=discord.ButtonStyle.secondary, custom_id='search_player_button_id')
+    async def search_player(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(PlayerSearchModal())
+
+
+class PlayerSearchModal(discord.ui.Modal):
+    def __init__(self):
+        super().__init__(title='Search Player')
+        self.player_name_input = discord.ui.TextInput(
+            label='player name',
+            placeholder='Please input player name / player name part',
+            custom_id='player_name_input'
+        )
+        self.add_item(self.player_name_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        player_name = self.player_name_input.value.lower()
+        await interaction.response.send_message(f'Searching for "{player_name}"...', ephemeral=True)  # Erste Antwort
+        await search_player_on_apis(player_name, interaction)  # Keine zweite Antwort hier
+
 
 class MyModal(discord.ui.Modal):
     def __init__(self, action, streamer_name, steam_id=None, player_ingame_name=None, further_infos=None):
@@ -121,11 +159,55 @@ async def send_unwanted_report(user, streamer_name, steam_id, player_ingame_name
         f'**SteamID:** {steam_id}\n'
         f'**Steam-Profile:** https://steamcommunity.com/profiles/{steam_id}\n'
         f'**Type of issue:** Streaming without a map overlay or delay\n'
-        f'**Stream-URL:** https://twitch.tv/{streamer_name}\n'
-        f'**Description:** {further_infos}'
-        f'**Reporter:** {user.name}\n'
+        f'**Description:** Streaming without a map overlay or delay, Weiteres: {further_infos}, **Twitch-URL:** https://twitch.tv/{streamer_name}, **Reporter:** {user.name}'
     )
     await unwanted_channel.send(message)
+
+async def suche_spieler_in_api(api_url, gesuchter_spieler, interaction, api_key=None):
+    headers = {}
+    if api_key:
+        headers['Authorization'] = f'Bearer {api_key}'
+
+    try:
+        response = requests.get(api_url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                if isinstance(data, dict) and "result" in data and "stats" in data["result"]:
+                    for spieler in data["result"]["stats"]:
+                        if gesuchter_spieler in spieler['player'].lower():
+                            message = f"Player: {spieler['player']}, Player ID: {spieler['player_id']}"
+                            await interaction.followup.send(message, ephemeral=True)  # followup.send statt response.send_message
+                            return True  # Spieler wurde gefunden, kehre mit True zurück
+                return False  # Spieler wurde in dieser API nicht gefunden
+            except ValueError:
+                print(f"Fehler beim Verarbeiten der JSON-Daten von API: {api_url}")
+                return False
+        else:
+            print(f"Fehlerhafte Antwort von API: {api_url}, Status Code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"Fehler beim Abrufen der API: {api_url}\n{str(e)}")
+        return False
+
+
+async def search_player_on_apis(player_name, interaction):
+    player_found = False  # Überwacht, ob der Spieler gefunden wurde
+    
+    for api_url in api_urls:
+        if "rcon.die-truemmertruppe.de" in api_url:
+            found_in_api = await suche_spieler_in_api(api_url, player_name, interaction, api_key=api_key)  # Mit API-Key
+        else:
+            found_in_api = await suche_spieler_in_api(api_url, player_name, interaction)  # Ohne API-Key
+        
+        if found_in_api:  # Wenn der Spieler in einer API gefunden wurde
+            player_found = True
+    
+    # Wenn der Spieler in keiner API gefunden wurde, verwende followup für die Antwort
+    if not player_found:
+        await interaction.followup.send("Player not found", ephemeral=True)
+
+
 
 async def fetch_info_from_db(streamer_name):
     try:
