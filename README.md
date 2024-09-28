@@ -93,4 +93,4 @@ Embed Links
 ```
 ### 7. Running the Bot
 To start the bot, simply run:
-`python bot.py`
+`python twitch-scouter.py`
