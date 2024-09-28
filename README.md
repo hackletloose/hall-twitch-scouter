@@ -63,6 +63,21 @@ IRRELEVANT_DAYS=180
 CONSOLE_DAYS=180
 HIDE_HOURS=6
 DELETE_AFTER_ONLINE_TIME=15
+
+# API URLs / API KEYs
+API_URL_1=http://example.com:8010/api/get_live_scoreboard
+API_URL_2=.../api/get_live_scoreboard
+API_URL_3=.../api/get_live_scoreboard
+API_URL_4=.../api/get_live_scoreboard
+API_URL_5=.../api/get_live_scoreboard
+API_URL_6=.../api/get_live_scoreboard
+API_URL_7=.../api/get_live_scoreboard
+API_URL_8=.../api/get_live_scoreboard
+API_KEY_8=xxxx-xxxxx-xxxxxxxx-xxxxxxx-xxxxxx-xxxxxx
+API_URL_9=.../api/get_live_scoreboard
+API_URL_10=.../api/get_live_scoreboard
+API_URL_11=.../api/get_live_scoreboard
+API_URL_12=.../api/get_live_scoreboard
 ```
 ### 5. Setup the Database
 The bot uses SQLite to store information about streamers. When the bot starts, it will automatically create a streamers.db database and set up the necessary tables.
