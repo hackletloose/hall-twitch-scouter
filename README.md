@@ -10,6 +10,13 @@ A bot to automatically monitor and report Twitch streamers playing *Hell Let Loo
 - Allows storing of streamer info, such as Steam ID and player in-game name.
 - Supports unwanted reports directly in Discord.
 
+ToDo:
+Execute the following commands after downloading:
+1. Copy the `.env.dist` file to `.env` and enter your values.
+2. Run the command `pip install python-dotenv`.
+3. Copy `twitch-scouter.service.dist` to `/etc/systemd/system/twitch-scouter.service`
+4. Activate and start the service with `sudo systemctl enable twitch-scouter.service` and `sudo systemctl start twitch-scouter.service`.
+
 ## Prerequisites
 
 Ensure you have the following installed:
