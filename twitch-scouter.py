@@ -20,12 +20,8 @@ from bin.connection_twitch import (
 )
 from bin.connection_discord import (
     MyView,
-<<<<<<< HEAD
     CategorizeModal,
     PlayerSearchModal,
-=======
-    UnifiedModal,
->>>>>>> 50cc472ee59ad5b95636ab9771efe561f00d65ee
     send_unwanted_report
 )
 
