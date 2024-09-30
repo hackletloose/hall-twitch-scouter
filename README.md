@@ -104,6 +104,9 @@ Manage Messages (for deleting outdated messages)
 Use Slash Commands
 Embed Links
 ```
-### 7. Running the Bot
+### 7. Data migration
+If you did use this system before, you now have to migrate the SQLite Database to MariaDB Database. For this, please use the Migration by running `python v3_data_migration.py`
+
+### 8. Running the Bot
 To start the bot, simply run:
 `python twitch-scouter.py`
