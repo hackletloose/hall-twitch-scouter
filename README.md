@@ -13,7 +13,7 @@ A bot to automatically monitor and report Twitch streamers playing *Hell Let Loo
 ToDo:
 Execute the following commands after downloading:
 1. Copy the `.env.dist` file to `.env` and enter your values.
-2. Run the command `pip install python-dotenv`.
+2. Run the command `pip install python-dotenv discord.py requests python-dotenv mysql-connector-python`.
 3. Copy `twitch-scouter.service.dist` to `/etc/systemd/system/twitch-scouter.service`
 4. Activate and start the service with `sudo systemctl enable twitch-scouter.service` and `sudo systemctl start twitch-scouter.service`.
 
@@ -23,7 +23,8 @@ Ensure you have the following installed:
 
 - Python 3.8 or higher
 - pip (Python package installer)
-- SQLite3 (for the database)
+- MariaDB Client (for the database connection)
+- MariaDB Server (for the database)
 
 ### Ubuntu/Debian (APT Installation)
 
@@ -32,15 +33,17 @@ To install Python and other required dependencies:
 ```
 bash
 sudo apt update
-sudo apt install python3 python3-pip python3-venv sqlite3 -y
+sudo apt install python3 python3-pip libmysqlclient-dev build-essential -y
+
 ```
 ### 1. Clone the Repository
 ```
 git clone https://github.com/hackletloose/hall-twitch-scouter.git
 cd hall-twitch-scouter
 ```
-### 2. Set up the Virtual Environment
+### 2. Set up the Virtual Environment (OPTIONAL!)
 ```
+sudo apt install python3-venv
 python3 -m venv venv
 source venv/bin/activate  # For Linux/MacOS
 # OR
@@ -51,43 +54,46 @@ venv\Scripts\activate  # For Windows
 
 ### 4. Setup .env
 ```
-# Discord Setup
-DISCORD_TOKEN=your_discord_token
-REPORTS_DISCORD_CHANNEL_ID=your_reports_channel_id
-UNWANTED_DISCORD_CHANNEL_ID=your_unwanted_channel_id
+#DISCORD SETTINGS (nessassary for show up streamers and categorizing them)
+DISCORD_TOKEN=
+REPORTS_DISCORD_CHANNEL_ID=
+UNWANTED_DISCORD_CHANNEL_ID=
 
-### Twitch Setup
+#TWITCH API SETTINGS (nessassary for show up streamers)
 TWITCH_CLIENT_ID=your_twitch_client_id
 TWITCH_CLIENT_SECRET=your_twitch_client_secret
 STREAM_GAME_ID=497440  # Game ID for Hell Let Loose
-STREAM_GAME_NAME=Hell Let Loose
 STREAM_LANGUAGE=de  # Language filter for streams
 
-# Bot Setup
+#SCRIPT VARIABLES (used for shown and unshown streamers)
 CERTIFY_DAYS=90
 UNWANTED_DAYS=180
 IRRELEVANT_DAYS=180
 CONSOLE_DAYS=180
 HIDE_HOURS=6
 DELETE_AFTER_ONLINE_TIME=15
+DATABASE_PATH=./data/streamers.db
 
-# API URLs / API KEYs
-API_URL_1=http://example.com:8010/api/get_live_scoreboard
-API_URL_2=.../api/get_live_scoreboard
-API_URL_3=.../api/get_live_scoreboard
-API_URL_4=.../api/get_live_scoreboard
-API_URL_5=.../api/get_live_scoreboard
-API_URL_6=.../api/get_live_scoreboard
-API_URL_7=.../api/get_live_scoreboard
-API_URL_8=.../api/get_live_scoreboard
-API_KEY_8=xxxx-xxxxx-xxxxxxxx-xxxxxxx-xxxxxx-xxxxxx
-API_URL_9=.../api/get_live_scoreboard
-API_URL_10=.../api/get_live_scoreboard
-API_URL_11=.../api/get_live_scoreboard
-API_URL_12=.../api/get_live_scoreboard
+#DATABASE VARIABLES (used for saving streamers data)
+DATABASE_HOST=
+DATABASE_PORT=3306
+DATABASE_NAME=
+DATABASE_USER=
+DATABASE_PASSWORD=
+
+# YOUR KNOWN CRCON APIS (for the search button)
+API_URL_1=
+API_KEY_1=
+API_URL_2=
+API_KEY_2=
+API_URL_3=
+API_KEY_3=
+API_URL_4=
+API_KEY_4=
+# You could add more and more API_URL_x and API_KEY_x to this configuration.
 ```
 ### 5. Setup the Database
-The bot uses SQLite to store information about streamers. When the bot starts, it will automatically create a streamers.db database and set up the necessary tables.
+The bot uses MariaDB to store information about streamers. When the bot starts, it will automatically create a streamers.db database and set up the necessary tables.
 
 ### 6. Discord Bot Permissions
 Ensure your Discord bot has the following permissions:
@@ -98,6 +104,9 @@ Manage Messages (for deleting outdated messages)
 Use Slash Commands
 Embed Links
 ```
-### 7. Running the Bot
+### 7. Data migration
+If you did use this system before, you now have to migrate the SQLite Database to MariaDB Database. For this, please use the Migration by running `python v3_data_migration.py`
+
+### 8. Running the Bot
 To start the bot, simply run:
 `python twitch-scouter.py`
