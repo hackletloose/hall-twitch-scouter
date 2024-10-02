@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 import asyncio
+import time
 from bin.connection_mariadb import (
     store_streamer_in_db,
     update_show_later,
@@ -141,3 +142,17 @@ async def send_unwanted_report(user, streamer_name, steam_id, player_ingame_name
         await user.send(f"Failed to send unwanted report due to an HTTP error: {http_err}")
     except Exception as e:
         await user.send(f"An unexpected error occurred while trying to send the report: {e}")
+
+def start_bot():
+    while True:
+        try:
+            bot.run(DISCORD_TOKEN)
+        except (discord.errors.ConnectionClosed, discord.errors.GatewayNotFound) as e:
+            print(f"Error occurred: {e}. Reconnecting in 5 seconds...")
+            time.sleep(5)
+        except Exception as e:
+            print(f"Unexpected error: {e}. Restarting bot...")
+            time.sleep(10)
+
+if __name__ == "__main__":
+    start_bot()

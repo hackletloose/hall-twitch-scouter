@@ -5,6 +5,7 @@ import asyncio
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
+import time
 from bin.connection_mariadb import (
     create_or_update_table,
     store_streamer_in_db,
@@ -22,7 +23,8 @@ from bin.connection_discord import (
     MyView,
     CategorizeModal,
     PlayerSearchModal,
-    send_unwanted_report
+    send_unwanted_report,
+    start_bot
 )
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -37,7 +39,7 @@ reported_streamers = {}
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents, reconnect=True)
 
 @tasks.loop(minutes=1)
 async def check_streams():
@@ -97,6 +99,9 @@ async def on_ready():
         print(f'Logged in as {bot.user.name}')
     except Exception as e:
         print(f"Error during on_ready: {e}")
+
+async def on_disconnect():
+    print("Bot disconnected. Attempting to reconnect...")
 
 async def clear_channel_messages():
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
