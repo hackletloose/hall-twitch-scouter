@@ -5,12 +5,11 @@ from datetime import datetime, timedelta
 import os
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
-
-# Hole die Datenbank-Konfigurationsdaten aus den Umgebungsvariablen
 DB_HOST = os.getenv('DATABASE_HOST')
 DB_PORT = os.getenv('DATABASE_PORT')
 DB_NAME = os.getenv('DATABASE_NAME')
 DB_USER = os.getenv('DATABASE_USER')
+DB_TABLE = os.getenv('DATABASE_TABLE')
 DB_PASSWORD = os.getenv('DATABASE_PASSWORD')
 
 connection_pool = pooling.MySQLConnectionPool(
@@ -31,8 +30,8 @@ def create_or_update_table():
     try:
         with get_db_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS streamers (
+                cursor.execute(f'''
+                    CREATE TABLE IF NOT EXISTS `{DB_TABLE}` (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         name VARCHAR(255) UNIQUE,
                         status VARCHAR(255),
@@ -51,9 +50,9 @@ def store_streamer_in_db(streamer_name, status=None, steam_id=None, player_ingam
     try:
         with get_db_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute('''
+                cursor.execute(f'''
                     SELECT status, steam_id, player_ingame_name, further_infos 
-                    FROM streamers WHERE name = %s
+                    FROM `{DB_TABLE}` WHERE name = %s
                 ''', (streamer_name,))
                 result = cursor.fetchone()
                 if result:
@@ -62,8 +61,8 @@ def store_streamer_in_db(streamer_name, status=None, steam_id=None, player_ingam
                     steam_id = steam_id or existing_steam_id
                     player_ingame_name = player_ingame_name or existing_player_ingame_name
                     further_infos = further_infos or existing_further_infos
-                cursor.execute('''
-                    INSERT INTO streamers (name, status, steam_id, player_ingame_name, further_infos, last_updated, show_later_until)
+                cursor.execute(f'''
+                    INSERT INTO `{DB_TABLE}` (name, status, steam_id, player_ingame_name, further_infos, last_updated, show_later_until)
                     VALUES (%s, %s, %s, %s, %s, %s, NULL)
                     ON DUPLICATE KEY UPDATE
                         status = VALUES(status),
@@ -77,11 +76,24 @@ def store_streamer_in_db(streamer_name, status=None, steam_id=None, player_ingam
     except Error as e:
         print(f"Error: {e}")
 
+def update_show_later(streamer_name, show_later_until):
+    try:
+        with get_db_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(f'''
+                    UPDATE `{DB_TABLE}`
+                    SET show_later_until = %s
+                    WHERE name = %s
+                ''', (show_later_until, streamer_name))
+                connection.commit()
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+
 def fetch_info_from_db(streamer_name):
     try:
         with get_db_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute('SELECT steam_id, player_ingame_name, further_infos FROM streamers WHERE name = %s', (streamer_name,))
+                cursor.execute(f'SELECT steam_id, player_ingame_name, further_infos FROM `{DB_TABLE}` WHERE name = %s', (streamer_name,))
                 result = cursor.fetchone()
                 if result:
                     return result[0], result[1], result[2]
@@ -90,24 +102,11 @@ def fetch_info_from_db(streamer_name):
         print(f"Error: {e}")
         return None, None, None
 
-def update_show_later(streamer_name, show_later_until):
-    try:
-        with get_db_connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute('''
-                    UPDATE streamers
-                    SET show_later_until = %s
-                    WHERE name = %s
-                ''', (show_later_until, streamer_name))
-                connection.commit()
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
-
 def should_display_streamer(streamer_name, CERTIFY_DAYS, UNWANTED_DAYS, IRRELEVANT_DAYS):
     try:
         with get_db_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute('SELECT status, last_updated, show_later_until FROM streamers WHERE name = %s', (streamer_name,))
+                cursor.execute(f'SELECT status, last_updated, show_later_until FROM `{DB_TABLE}` WHERE name = %s', (streamer_name,))
                 result = cursor.fetchone()
                 status, last_updated = None, None
                 if result:
@@ -120,16 +119,16 @@ def should_display_streamer(streamer_name, CERTIFY_DAYS, UNWANTED_DAYS, IRRELEVA
                     elif status in ['unwanted', 'irrelevant', 'console'] and now - last_updated < timedelta(days=UNWANTED_DAYS):
                         return False, status, last_updated
                 return True, status, last_updated
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
+    except Error as e:
+        print(f"Error: {e}")
         return True, None, None
 
 def delete_expired_streamers():
     try:
         with get_db_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute('''
-                    DELETE FROM streamers
+                cursor.execute(f'''
+                    DELETE FROM `{DB_TABLE}`
                     WHERE show_later_until IS NOT NULL AND show_later_until < NOW()
                 ''')
                 connection.commit()
@@ -140,8 +139,8 @@ def delete_old_streamers():
     try:
         with get_db_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute('''
-                    DELETE FROM streamers
+                cursor.execute(f'''
+                    DELETE FROM `{DB_TABLE}`
                     WHERE show_later_until IS NULL AND status = ''
                 ''')
                 connection.commit()
