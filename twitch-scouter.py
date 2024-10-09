@@ -64,7 +64,7 @@ async def check_streams():
             if status and last_updated:
                 embed = discord.Embed(
                     title=f'**The known Streamer {streamer["user_name"]}** is now online',
-                    description=f'**Last decision:** {status.capitalize()}, **Last Check on:** {last_updated.strftime("%d.%m.%Y")}',
+                    description=f'**Last decision:** {status.capitalize()}, **Last Check on:** {last_updated.strftime("%d.%m.%Y")} ',
                     url=stream_url
                 )
                 embed.set_image(url=thumbnail_url)
@@ -100,11 +100,19 @@ async def on_ready():
     except Exception as e:
         print(f"Error during on_ready: {e}")
 
-async def on_disconnect():
-    print("Bot disconnected. Attempting to reconnect...")
-
 async def clear_channel_messages():
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
     await channel.purge(limit=None)
+
+@bot.event
+async def on_disconnect():
+    print('Bot has disconnected. Attempting to reconnect...')
+    await bot.connect(reconnect=True)
+
+@bot.event
+async def on_error(event, *args, **kwargs):
+    print(f'An error occurred in {event}:', args, kwargs)
+    await asyncio.sleep(5)
+    await bot.connect(reconnect=True)
 
 bot.run(DISCORD_TOKEN)
