@@ -131,7 +131,7 @@ async def send_unwanted_report(user, streamer_name, steam_id, player_ingame_name
         f'**Name:** {player_ingame_name}\n'
         f'**SteamID:** {steam_id}\n'
         f'**Steam-Profile:** https://steamcommunity.com/profiles/{steam_id}\n'
-        f'**Art des Problems:** Streaming ohne Map-Overlay oder Verzögerung, weitere Infos: {further_infos}, Twitch-URL: https://twitch.tv/{streamer_name}, Melder: {user.name}'
+        f'**Description:** Streaming ohne Map-Overlay oder Verzögerung, weitere Infos: {further_infos}, Twitch-URL: https://twitch.tv/{streamer_name}, Melder: {user.name}'
     )
 
     try:
