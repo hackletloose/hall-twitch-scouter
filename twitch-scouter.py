@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 import time
+import logging
 from bin.connection_mariadb import (
     create_or_update_table,
     store_streamer_in_db,
@@ -27,6 +28,16 @@ from bin.connection_discord import (
     start_bot
 )
 
+# Configure logging
+logging.basicConfig(
+    level=logging.WARNING,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("twitch-scouter.log"),
+        logging.StreamHandler()
+    ]
+)
+
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 DISCORD_CHANNEL_ID = int(os.getenv('REPORTS_DISCORD_CHANNEL_ID'))
@@ -43,19 +54,23 @@ bot = commands.Bot(command_prefix='!', intents=intents, reconnect=True)
 
 @tasks.loop(minutes=1)
 async def check_streams():
+    logging.info("Checking for online streamers...")
     token = get_twitch_token()
     streamers = get_streamers(token)
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
     online_streamers = set(streamer['user_name'] for streamer in streamers)
     current_time = datetime.now()
+
     for streamer_name, (message_id, last_seen) in list(reported_streamers.items()):
         if streamer_name not in online_streamers and current_time - last_seen > timedelta(minutes=DELETE_AFTER_ONLINE_TIME):
             try:
                 message = await channel.fetch_message(message_id)
                 await message.delete()
+                logging.info(f"Deleted message for streamer {streamer_name} who is offline.")
             except discord.NotFound:
-                pass
+                logging.warning(f"Message for {streamer_name} not found.")
             del reported_streamers[streamer_name]
+
     for streamer in streamers:
         display, status, last_updated = should_display_streamer(streamer['user_name'], CERTIFY_DAYS, UNWANTED_DAYS, IRRELEVANT_DAYS)
         if display and streamer['user_name'] not in reported_streamers:
@@ -69,6 +84,7 @@ async def check_streams():
                 )
                 embed.set_image(url=thumbnail_url)
                 message = await channel.send(embed=embed, view=MyView(streamer['user_name']))
+                logging.info(f"Sent message for streamer {streamer['user_name']} with known status.")
             else:
                 embed = discord.Embed(
                     title=f'A new Streamer **{streamer["user_name"]}** is now online',
@@ -76,6 +92,8 @@ async def check_streams():
                 )
                 embed.set_image(url=thumbnail_url)
                 message = await channel.send(embed=embed, view=MyView(streamer['user_name']))
+                logging.info(f"Sent message for new streamer {streamer['user_name']}.")
+            
             reported_streamers[streamer['user_name']] = (message.id, current_time)
             await asyncio.to_thread(store_streamer_in_db, streamer['user_name'])
         else:
@@ -84,8 +102,10 @@ async def check_streams():
 
 @tasks.loop(minutes=60)
 async def database_cleanup():
+    logging.info("Starting database cleanup...")
     await asyncio.to_thread(delete_expired_streamers)
     await asyncio.to_thread(delete_old_streamers)
+    logging.info("Database cleanup completed.")
 
 @bot.event
 async def on_ready():
@@ -96,22 +116,23 @@ async def on_ready():
         await clear_channel_messages()
         if not check_streams.is_running():
             check_streams.start()
-        print(f'Logged in as {bot.user.name}')
+        logging.info(f'Logged in as {bot.user.name}')
     except Exception as e:
-        print(f"Error during on_ready: {e}")
+        logging.error(f"Error during on_ready: {e}")
 
 async def clear_channel_messages():
+    logging.info(f"Clearing all messages in channel {DISCORD_CHANNEL_ID}.")
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
     await channel.purge(limit=None)
 
 @bot.event
 async def on_disconnect():
-    print('Bot has disconnected. Attempting to reconnect...')
+    logging.warning('Bot has disconnected. Attempting to reconnect...')
     await bot.connect(reconnect=True)
 
 @bot.event
 async def on_error(event, *args, **kwargs):
-    print(f'An error occurred in {event}:', args, kwargs)
+    logging.error(f'An error occurred in {event}: {args}, {kwargs}')
     await asyncio.sleep(5)
     await bot.connect(reconnect=True)
 
