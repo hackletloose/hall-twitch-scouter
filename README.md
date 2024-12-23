@@ -51,40 +51,52 @@ venv\Scripts\activate  # For Windows
 
 ### 4. Setup .env
 ```
-# Discord Setup
-DISCORD_TOKEN=your_discord_token
-REPORTS_DISCORD_CHANNEL_ID=your_reports_channel_id
-UNWANTED_DISCORD_CHANNEL_ID=your_unwanted_channel_id
+#DISCORD SETTINGS (nessassary for show up streamers and categorizing them)
+DISCORD_TOKEN=
+REPORTS_DISCORD_CHANNEL_ID=
+UNWANTED_DISCORD_CHANNEL_ID=
+1ST_WARN_DISCORD_CHANNEL_ID=
+2ND_WARN_DISCORD_CHANNEL_ID=
 
-### Twitch Setup
-TWITCH_CLIENT_ID=your_twitch_client_id
-TWITCH_CLIENT_SECRET=your_twitch_client_secret
-STREAM_GAME_ID=497440  # Game ID for Hell Let Loose
-STREAM_GAME_NAME=Hell Let Loose
-STREAM_LANGUAGE=de  # Language filter for streams
+#TWITCH API SETTINGS (nessassary for show up streamers)
+TWITCH_CLIENT_ID=
+TWITCH_CLIENT_SECRET=
+STREAM_GAME_ID=
+STREAM_LANGUAGE=
 
-# Bot Setup
+#SCRIPT VARIABLES (used for shown and unshown streamers)
 CERTIFY_DAYS=90
 UNWANTED_DAYS=180
+1ST_WARN_HIDE_HOURS=4
+2ND_WARN_HIDE_HOURS=24
 IRRELEVANT_DAYS=180
 CONSOLE_DAYS=180
-HIDE_HOURS=6
+HIDE_HOURS=1
 DELETE_AFTER_ONLINE_TIME=15
+DATABASE_PATH=./data/streamers.db
 
-# API URLs / API KEYs
-API_URL_1=http://example.com:8010/api/get_live_scoreboard
-API_URL_2=.../api/get_live_scoreboard
-API_URL_3=.../api/get_live_scoreboard
-API_URL_4=.../api/get_live_scoreboard
-API_URL_5=.../api/get_live_scoreboard
-API_URL_6=.../api/get_live_scoreboard
-API_URL_7=.../api/get_live_scoreboard
-API_URL_8=.../api/get_live_scoreboard
-API_KEY_8=xxxx-xxxxx-xxxxxxxx-xxxxxxx-xxxxxx-xxxxxx
-API_URL_9=.../api/get_live_scoreboard
-API_URL_10=.../api/get_live_scoreboard
-API_URL_11=.../api/get_live_scoreboard
-API_URL_12=.../api/get_live_scoreboard
+#DATABASE VARIABLES (used for saving streamers data)
+DATABASE_HOST=127.0.0.1
+DATABASE_PORT=3306
+DATABASE_NAME=
+DATABASE_USER=
+DATABASE_PASSWORD=
+DATABASE_TABLE=
+
+#YOUR KNOWN CRCON APIS (for the search button)
+API_NAME_1=RCON Server 1
+API_URL_1=
+API_KEY_1=
+API_NAME_2=RCON Server 2
+API_URL_2=
+API_KEY_2=
+API_NAME_3=ANOTHER ONE
+API_URL_3=
+API_KEY_3=
+API_NAME_4=ANOTHER ONE 2
+API_URL_4=
+API_KEY_4=
+# You could add more and more API_NAME_x, API_URL_x and API_KEY_x to this configuration.
 ```
 ### 5. Setup the Database
 The bot uses SQLite to store information about streamers. When the bot starts, it will automatically create a streamers.db database and set up the necessary tables.

@@ -4,7 +4,6 @@ import time
 import logging
 from dotenv import load_dotenv
 
-# Configure logging
 logging.basicConfig(
     level=logging.WARNING,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -45,30 +44,26 @@ def get_twitch_token(retries=3):
     logging.error("Failed to retrieve Twitch access token after retries.")
     return None
 
-def get_streamers(token, retries=3):
-    url = 'https://api.twitch.tv/helix/streams'
-    headers = {
-        'Client-ID': TWITCH_CLIENT_ID,
-        'Authorization': f'Bearer {token}'
-    }
-    params = {
-        'game_id': STREAM_GAME_ID,
-        'language': STREAM_LANGUAGE
-    }
-    logging.info("Attempting to retrieve streamers.")
-    for attempt in range(retries):
-        try:
-            response = requests.get(url, headers=headers, params=params, timeout=10)
-            response.raise_for_status()
-            streamers = response.json().get('data', [])
-            logging.info(f"Successfully retrieved {len(streamers)} streamers.")
-            return streamers
-        except requests.exceptions.RequestException as e:
-            logging.error(f"Attempt {attempt + 1}/{retries} to fetch streamers failed: {e}")
-            if attempt < retries - 1:
-                logging.info("Retrying in 5 seconds...")
-                time.sleep(5)
-        except ValueError:
-            logging.error("Error decoding JSON response.")
-    logging.error("Failed to retrieve streamers after retries.")
-    return []
+def get_streamers(token):
+    try:
+        headers = {
+            'Client-ID': os.getenv('TWITCH_CLIENT_ID'),
+            'Authorization': f'Bearer {token}'
+        }
+        params = {
+            'game_id': os.getenv('STREAM_GAME_ID'),
+            'language': os.getenv('STREAM_LANGUAGE')
+        }
+        response = requests.get('https://api.twitch.tv/helix/streams', headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+        if 'data' not in data or not isinstance(data['data'], list):
+            logging.warning("Unexpected response format from Twitch API.")
+            return []
+
+        streamers = data['data']
+        logging.info(f"Streamers from Twitch API: {[streamer['user_name'] for streamer in streamers]}")
+        return streamers
+    except requests.RequestException as e:
+        logging.error(f"Error fetching streams from Twitch API: {e}")
+        return []

@@ -28,7 +28,6 @@ from bin.connection_discord import (
     start_bot
 )
 
-# Configure logging
 logging.basicConfig(
     level=logging.WARNING,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -52,50 +51,68 @@ intents.messages = True
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents, reconnect=True)
 
+async def test_should_display_streamer():
+    streamer_name = "rawbyne"
+    display, status, last_updated = should_display_streamer(
+        streamer_name, CERTIFY_DAYS, UNWANTED_DAYS, IRRELEVANT_DAYS
+    )
+    print(f"Test Result for {streamer_name}:")
+    print(f"Display: {display}, Status: {status}, Last Updated: {last_updated}")
+
+
 @tasks.loop(minutes=1)
 async def check_streams():
     logging.info("Checking for online streamers...")
     token = get_twitch_token()
     streamers = get_streamers(token)
-    channel = bot.get_channel(DISCORD_CHANNEL_ID)
     online_streamers = set(streamer['user_name'] for streamer in streamers)
     current_time = datetime.now()
-
     for streamer_name, (message_id, last_seen) in list(reported_streamers.items()):
         if streamer_name not in online_streamers and current_time - last_seen > timedelta(minutes=DELETE_AFTER_ONLINE_TIME):
             try:
+                channel = bot.get_channel(DISCORD_CHANNEL_ID)  # Kanal für Berichte abrufen
                 message = await channel.fetch_message(message_id)
                 await message.delete()
                 logging.info(f"Deleted message for streamer {streamer_name} who is offline.")
             except discord.NotFound:
                 logging.warning(f"Message for {streamer_name} not found.")
             del reported_streamers[streamer_name]
-
     for streamer in streamers:
-        display, status, last_updated = should_display_streamer(streamer['user_name'], CERTIFY_DAYS, UNWANTED_DAYS, IRRELEVANT_DAYS)
+        display, status, last_updated = should_display_streamer(
+            streamer['user_name'], CERTIFY_DAYS, UNWANTED_DAYS, IRRELEVANT_DAYS
+        )
         if display and streamer['user_name'] not in reported_streamers:
             thumbnail_url = streamer['thumbnail_url'].replace("{width}", "320").replace("{height}", "180")
             stream_url = f"https://www.twitch.tv/{streamer['user_name']}"
-            if status and last_updated:
+            db_status, db_steam_id, db_player_ingame_name, db_further_infos = await asyncio.to_thread(
+                fetch_info_from_db, streamer['user_name']
+            )
+            channel = bot.get_channel(DISCORD_CHANNEL_ID)
+            view = MyView(streamer['user_name'])
+            await view.setup_buttons(db_status)
+            if db_steam_id or db_player_ingame_name or db_further_infos:
                 embed = discord.Embed(
                     title=f'**The known Streamer {streamer["user_name"]}** is now online',
-                    description=f'**Last decision:** {status.capitalize()}, **Last Check on:** {last_updated.strftime("%d.%m.%Y")} ',
+                    description=(f'**Last Decision:** {db_status.capitalize() if db_status else "N/V"}\n'
+                                 f'**Player-ID:** {db_steam_id or "N/V"}\n'
+                                 f'**Player Name:** {db_player_ingame_name or "N/V"}\n'
+                                 f'**Further Infos:** {db_further_infos or "None"}\n'
+                                 f'**Last Check:** {last_updated.strftime("%d.%m.%Y") if last_updated else "Never"}'),
                     url=stream_url
                 )
                 embed.set_image(url=thumbnail_url)
-                message = await channel.send(embed=embed, view=MyView(streamer['user_name']))
-                logging.info(f"Sent message for streamer {streamer['user_name']} with known status.")
+                message = await channel.send(embed=embed, view=view)
+                logging.info(f"Sent message for known streamer {streamer['user_name']} with additional info.")
             else:
                 embed = discord.Embed(
                     title=f'A new Streamer **{streamer["user_name"]}** is now online',
                     url=stream_url
                 )
                 embed.set_image(url=thumbnail_url)
-                message = await channel.send(embed=embed, view=MyView(streamer['user_name']))
+                message = await channel.send(embed=embed, view=view)
                 logging.info(f"Sent message for new streamer {streamer['user_name']}.")
-            
             reported_streamers[streamer['user_name']] = (message.id, current_time)
-            await asyncio.to_thread(store_streamer_in_db, streamer['user_name'])
+            await asyncio.to_thread(store_streamer_in_db, streamer['user_name'], update_last_updated=False)
         else:
             if streamer['user_name'] in reported_streamers:
                 reported_streamers[streamer['user_name']] = (reported_streamers[streamer['user_name']][0], current_time)
@@ -119,7 +136,8 @@ async def on_ready():
         logging.info(f'Logged in as {bot.user.name}')
     except Exception as e:
         logging.error(f"Error during on_ready: {e}")
-
+    await test_should_display_streamer()
+    
 async def clear_channel_messages():
     logging.info(f"Clearing all messages in channel {DISCORD_CHANNEL_ID}.")
     channel = bot.get_channel(DISCORD_CHANNEL_ID)

@@ -3,7 +3,6 @@ import os
 import logging
 from dotenv import load_dotenv
 
-# Configure logging
 logging.basicConfig(
     level=logging.WARNING,
     format='%(asctime)s - %(levelname)s - %(message)s',
