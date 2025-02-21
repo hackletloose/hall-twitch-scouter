@@ -1,10 +1,10 @@
 import mysql.connector
-from dotenv import load_dotenv
 from mysql.connector import pooling, Error
 from datetime import datetime, timedelta
 import asyncio
 import os
 import logging
+from dotenv import load_dotenv
 
 logging.basicConfig(
     level=logging.WARNING,
@@ -73,14 +73,15 @@ def store_streamer_in_db(streamer_name, status=None, steam_id=None, player_ingam
                     steam_id = steam_id or existing_steam_id
                     player_ingame_name = player_ingame_name or existing_player_ingame_name
                     further_infos = further_infos or existing_further_infos
-                
+
                 if update_last_updated:
                     last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
                 else:
                     last_updated = None
-                
+
                 cursor.execute(f'''
-                    INSERT INTO `{DB_TABLE}` (name, status, steam_id, player_ingame_name, further_infos, last_updated, show_later_until)
+                    INSERT INTO `{DB_TABLE}` 
+                    (name, status, steam_id, player_ingame_name, further_infos, last_updated, show_later_until)
                     VALUES (%s, %s, %s, %s, %s, %s, NULL)
                     ON DUPLICATE KEY UPDATE
                         status = VALUES(status),
@@ -106,7 +107,7 @@ def update_show_later(streamer_name, show_later_until):
                 ''', (show_later_until, streamer_name))
                 connection.commit()
                 logging.info(f"Show later timestamp updated for `{streamer_name}` until {show_later_until}.")
-    except mysql.connector.Error as err:
+    except Error as err:
         logging.error(f"Error updating show_later_until for `{streamer_name}`: {err}")
 
 def fetch_info_from_db(streamer_name):
@@ -133,18 +134,24 @@ def should_display_streamer(streamer_name, CERTIFY_DAYS, UNWANTED_DAYS, IRRELEVA
     try:
         with get_db_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute(f'SELECT status, last_updated, show_later_until FROM `{DB_TABLE}` WHERE name = %s', (streamer_name,))
+                cursor.execute(f'''
+                    SELECT status, last_updated, show_later_until 
+                    FROM `{DB_TABLE}` 
+                    WHERE name = %s
+                ''', (streamer_name,))
                 result = cursor.fetchone()
-                status, last_updated = None, None
+                status, last_updated, show_later_until = None, None, None
                 if result:
                     status, last_updated, show_later_until = result
                     now = datetime.now()
                     if show_later_until and now < show_later_until:
                         return False, status, last_updated
-                    if status == 'certify' and now - last_updated < timedelta(days=CERTIFY_DAYS):
+                    if status == 'certify' and last_updated and (now - last_updated < timedelta(days=CERTIFY_DAYS)):
                         return False, status, last_updated
-                    elif status in ['unwanted', 'irrelevant', 'console'] and now - last_updated < timedelta(days=UNWANTED_DAYS):
-                        return False, status, last_updated
+                    elif status in ['unwanted', 'irrelevant', 'console', '1st warn', '2nd warn'] and last_updated:
+                        # Hier kann man UNWANTED_DAYS auch für '1st warn' / '2nd warn' anwenden, falls erwünscht
+                        if (now - last_updated < timedelta(days=UNWANTED_DAYS)):
+                            return False, status, last_updated
                 return True, status, last_updated
 
     except Error as e:
@@ -157,11 +164,12 @@ def delete_expired_streamers():
             with connection.cursor() as cursor:
                 cursor.execute(f'''
                     DELETE FROM `{DB_TABLE}`
-                    WHERE show_later_until IS NOT NULL AND show_later_until < NOW()
+                    WHERE show_later_until IS NOT NULL 
+                    AND show_later_until < NOW()
                 ''')
                 connection.commit()
                 logging.info(f"Expired streamers have been deleted from `{DB_TABLE}`.")
-    except mysql.connector.Error as err:
+    except Error as err:
         logging.error(f"Error deleting expired streamers: {err}")
 
 def delete_old_streamers():
@@ -170,11 +178,12 @@ def delete_old_streamers():
             with connection.cursor() as cursor:
                 cursor.execute(f'''
                     DELETE FROM `{DB_TABLE}`
-                    WHERE show_later_until IS NULL AND status = ''
+                    WHERE show_later_until IS NULL 
+                    AND (status = '' OR status IS NULL)
                 ''')
                 connection.commit()
                 logging.info(f"Old streamers without status have been deleted from `{DB_TABLE}`.")
-    except mysql.connector.Error as err:
+    except Error as err:
         logging.error(f"Error deleting old streamers: {err}")
 
 async def fetch_status_from_db(streamer_name):

@@ -5,7 +5,6 @@ import os
 import logging
 from bin.connection_rcon import search_player_on_apis
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -15,10 +14,10 @@ logging.basicConfig(
     ]
 )
 
-# Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
-PLAYER_SEARCH_DISCORD_CHANNEL_ID = int(os.getenv('PLAYER_SEARCH_DISCORD_CHANNEL_ID'))  # Get the channel ID from .env
+PLAYER_SEARCH_DISCORD_CHANNEL_ID = int(os.getenv('PLAYER_SEARCH_DISCORD_CHANNEL_ID'))
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='!', intents=intents, reconnect=True)
@@ -50,20 +49,22 @@ class PlayerSearchModal(discord.ui.Modal):
         await search_player_on_apis(player_name, interaction)
 
 async def clear_channel_messages():
-    logging.info(f"Clearing all messages in channel {PLAYER_SEARCH_DISCORD_CHANNEL_ID}.")
+    logging.info(f"Clearing only the bot's messages in channel {PLAYER_SEARCH_DISCORD_CHANNEL_ID}.")
     channel = bot.get_channel(PLAYER_SEARCH_DISCORD_CHANNEL_ID)
-    await channel.purge(limit=None)
+    await channel.purge(limit=None, check=lambda m: m.author == bot.user)
 
 @bot.event
 async def on_ready():
     logging.info(f"Bot logged in as {bot.user}. Ready to search players!")
-
-    # Automatically send the search button in the specified channel
     channel = bot.get_channel(PLAYER_SEARCH_DISCORD_CHANNEL_ID)
     await clear_channel_messages()
     if channel:
         view = SearchView()
-        await channel.send("Click the button below to search for a player.", view=view)
+        await channel.send(
+            "Mit dem folgenden Button könnt Ihr jeden derzeit aktiven Spieler suchen "
+            "und herausfinden, auf welchem Server er unterwegs ist.",
+            view=view
+        )
         logging.info(f"Search button sent in channel {PLAYER_SEARCH_DISCORD_CHANNEL_ID}.")
     else:
         logging.error(f"Channel with ID {PLAYER_SEARCH_DISCORD_CHANNEL_ID} not found!")
