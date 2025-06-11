@@ -19,21 +19,23 @@ async def search_player_on_apis(player_name, interaction):
     for i in range(1, 31):
         api_url = os.getenv(f'API_URL_{i}')
         api_key = os.getenv(f'API_KEY_{i}')
+        server_name = os.getenv(f'API_NAME_{i}', f'API {i}')
         if not api_url:
             logging.debug(f"API_URL_{i} not found, skipping.")
             continue
-        logging.info(f"Using API {i}: {api_url}")
+        logging.info(f"Using API {i}: {api_url} (Server: {server_name})")
         if not api_key:
-            found_in_api = await search_in_rcon(api_url, player_name, interaction)
+            found_in_api = await search_in_rcon(api_url, player_name, interaction, server_name=server_name)
         else:
-            found_in_api = await search_in_rcon(api_url, player_name, interaction, api_key)
+            found_in_api = await search_in_rcon(api_url, player_name, interaction, api_key, server_name=server_name)
         if found_in_api:
             logging.info(f"Player {player_name} found in API {i}.")
             return
     logging.info(f"Player {player_name} not found in any API.")
     await interaction.followup.send("Player not found", ephemeral=True)
 
-async def search_in_rcon(api_url, gesuchter_spieler, interaction, api_key=None):
+
+async def search_in_rcon(api_url, gesuchter_spieler, interaction, api_key=None, server_name="Unknown"):
     headers = {}
     if api_key:
         headers['Authorization'] = f'Bearer {api_key}'
@@ -47,12 +49,19 @@ async def search_in_rcon(api_url, gesuchter_spieler, interaction, api_key=None):
         try:
             data = response.json()
             if isinstance(data, dict) and "result" in data and "stats" in data["result"]:
+                matching_players = []
                 for spieler in data["result"]["stats"]:
                     if gesuchter_spieler in spieler['player'].lower():
-                        message = f"Player: {spieler['player']}, Player ID: {spieler['player_id']}"
-                        logging.info(f"Player {spieler['player']} found with Player ID {spieler['player_id']}.")
-                        await interaction.followup.send(message, ephemeral=True)
-                        return True
+                        # Hier wird der Servername hinzugefügt:
+                        message = f"Server: {server_name} - Player: {spieler['player']}, Player ID: {spieler['player_id']}"
+                        matching_players.append(message)
+                
+                if matching_players:
+                    # Zeige maximal 10 Ergebnisse an
+                    matching_players = matching_players[:10]
+                    final_message = "\n".join(matching_players)
+                    await interaction.followup.send(final_message, ephemeral=True)
+                    return True
             logging.info(f"Player {gesuchter_spieler} not found in {api_url} response.")
             return False
         except ValueError:
