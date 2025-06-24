@@ -2,6 +2,8 @@ import requests
 import os
 import logging
 from dotenv import load_dotenv
+import aiohttp
+import asyncio
 
 logging.basicConfig(
     level=logging.WARNING,
@@ -40,41 +42,36 @@ async def search_in_rcon(api_url, gesuchter_spieler, interaction, api_key=None, 
     if api_key:
         headers['Authorization'] = f'Bearer {api_key}'
         logging.debug(f"API Key provided for {api_url}.")
-    
-    try:
-        response = requests.get(api_url, headers=headers, timeout=10)
-        response.raise_for_status()
-        logging.info(f"Successful response from {api_url}.")
-        
-        try:
-            data = response.json()
-            if isinstance(data, dict) and "result" in data and "stats" in data["result"]:
-                matching_players = []
-                for spieler in data["result"]["stats"]:
-                    if gesuchter_spieler in spieler['player'].lower():
-                        # Hier wird der Servername hinzugefügt:
-                        message = f"Server: {server_name} - Player: {spieler['player']}, Player ID: {spieler['player_id']}"
-                        matching_players.append(message)
-                
-                if matching_players:
-                    # Zeige maximal 10 Ergebnisse an
-                    matching_players = matching_players[:10]
-                    final_message = "\n".join(matching_players)
-                    await interaction.followup.send(final_message, ephemeral=True)
-                    return True
-            logging.info(f"Player {gesuchter_spieler} not found in {api_url} response.")
-            return False
-        except ValueError:
-            logging.error(f"Error processing JSON data from API: {api_url}")
-            return False
 
-    except requests.exceptions.HTTPError as http_err:
+    try:
+        timeout = aiohttp.ClientTimeout(total=10)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(api_url, headers=headers) as resp:
+                resp.raise_for_status()
+                logging.info(f"Successful response from {api_url}.")
+                data = await resp.json()
+    except aiohttp.ClientError as http_err:
         logging.error(f"HTTP error occurred: {http_err}")
-    except requests.exceptions.ConnectionError as conn_err:
-        logging.error(f"Connection error occurred: {conn_err}")
-    except requests.exceptions.Timeout as timeout_err:
+        return False
+    except asyncio.TimeoutError as timeout_err:
         logging.error(f"Timeout error occurred: {timeout_err}")
-    except requests.exceptions.RequestException as req_err:
-        logging.error(f"An error occurred: {req_err}")
-    
+        return False
+    except ValueError:
+        logging.error(f"Error processing JSON data from API: {api_url}")
+        return False
+
+    if isinstance(data, dict) and "result" in data and "stats" in data["result"]:
+        matching_players = []
+        for spieler in data["result"]["stats"]:
+            if gesuchter_spieler in spieler['player'].lower():
+                message = f"Server: {server_name} - Player: {spieler['player']}, Player ID: {spieler['player_id']}"
+                matching_players.append(message)
+
+        if matching_players:
+            matching_players = matching_players[:10]
+            final_message = "\n".join(matching_players)
+            await interaction.followup.send(final_message, ephemeral=True)
+            return True
+
+    logging.info(f"Player {gesuchter_spieler} not found in {api_url} response.")
     return False
