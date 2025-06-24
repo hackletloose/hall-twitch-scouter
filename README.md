@@ -113,3 +113,9 @@ Embed Links
 ### 7. Running the Bot
 To start the bot, simply run:
 `python twitch-scouter.py`
+
+### Running Tests
+Run the unit tests with:
+```
+pytest -q
+```

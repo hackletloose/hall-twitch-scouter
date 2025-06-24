@@ -2,3 +2,4 @@ discord.py
 requests
 python-dotenv
 mysql-connector-python
+pytest
