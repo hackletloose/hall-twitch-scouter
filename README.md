@@ -23,7 +23,7 @@ Ensure you have the following installed:
 
 - Python 3.8 or higher
 - pip (Python package installer)
-- SQLite3 (for the database)
+- MySQL or MariaDB (for the database)
 
 ### Ubuntu/Debian (APT Installation)
 
@@ -32,7 +32,7 @@ To install Python and other required dependencies:
 ```
 bash
 sudo apt update
-sudo apt install python3 python3-pip python3-venv sqlite3 -y
+sudo apt install python3 python3-pip python3-venv mariadb-server mariadb-client -y
 ```
 ### 1. Clone the Repository
 ```
@@ -99,7 +99,7 @@ API_KEY_4=
 # You could add more and more API_NAME_x, API_URL_x and API_KEY_x to this configuration.
 ```
 ### 5. Setup the Database
-The bot uses SQLite to store information about streamers. When the bot starts, it will automatically create a streamers.db database and set up the necessary tables.
+The bot stores streamer information in a MySQL/MariaDB database. Connection settings are read from the environment variables `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, `DATABASE_PASSWORD` and `DATABASE_TABLE`. When the bot starts, `bin/connection_mariadb.py` creates the table if it does not already exist.
 
 ### 6. Discord Bot Permissions
 Ensure your Discord bot has the following permissions:
